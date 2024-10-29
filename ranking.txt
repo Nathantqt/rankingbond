@@ -1,0 +1,87 @@
+Option Explicit
+
+Sub Button1_Click()
+    Dim wsSheet1 As Worksheet
+    Dim resultSheet As Worksheet
+    Dim lastRow As Long
+    Dim searchValue As String
+    Dim i As Long
+    Dim outputRow As Long
+    Dim topN As Long
+    Dim values() As Variant
+    Dim indices() As Long
+    Dim tempValue As Variant
+    Dim tempIndex As Long
+
+    ' Définir votre feuille de calcul source
+    Set wsSheet1 = ThisWorkbook.Sheets("Sheet1")
+
+    ' Définir la feuille de résultats
+    Set resultSheet = ThisWorkbook.Sheets("Email")
+
+    ' Trouver le dernier numéro de ligne dans la colonne D
+    lastRow = wsSheet1.Cells(wsSheet1.Rows.count, "D").End(xlUp).Row
+
+    ' Définir la valeur à rechercher
+    searchValue = resultSheet.Range("A1").Value
+
+    ' Demander à l'utilisateur combien de valeurs garder
+    topN = Application.InputBox("Combien de valeurs voulez-vous garder ?", Type:=1)
+    
+    If topN <= 0 Then
+        MsgBox "Veuillez entrer un nombre valide."
+        Exit Sub
+    End If
+
+    outputRow = 1 ' Initialiser la ligne de sortie dans la feuille Email
+
+    ' Effacer le contenu précédent de la feuille Email
+    resultSheet.Cells.Clear
+
+    ' Initialiser des tableaux pour stocker les valeurs et leurs indices
+    ReDim values(1 To lastRow) As Variant
+    ReDim indices(1 To lastRow) As Long
+
+    Dim count As Long
+    count = 0
+
+    ' Parcourir chaque ligne de la colonne D
+    For i = 1 To lastRow
+        If wsSheet1.Cells(i, 4).Value = searchValue Then ' 4 correspond à la colonne D
+            count = count + 1
+            values(count) = wsSheet1.Cells(i, 7).Value ' 7 correspond à la colonne G
+            indices(count) = i ' Stocke l'index de la ligne
+        End If
+    Next i
+
+    ' Redimensionner les tableaux pour ne conserver que les lignes correspondantes
+    If count > 0 Then
+        ReDim Preserve values(1 To count)
+        ReDim Preserve indices(1 To count)
+
+        ' Tri des valeurs et des indices en utilisant un algorithme de tri simple (Bubble Sort)
+        Dim j As Long
+        For i = 1 To count - 1
+            For j = i + 1 To count
+                If values(i) < values(j) Then
+                    ' Échange des valeurs
+                    tempValue = values(i)
+                    values(i) = values(j)
+                    values(j) = tempValue
+
+                    ' Échange des indices
+                    tempIndex = indices(i)
+                    indices(i) = indices(j)
+                    indices(j) = tempIndex
+                End If
+            Next j
+        Next i
+
+        ' Copier les top N lignes avec les plus grandes valeurs dans la feuille Email
+        For i = 1 To Application.WorksheetFunction.Min(topN, count)
+            wsSheet1.Rows(indices(i)).Copy Destination:=resultSheet.Rows(outputRow)
+            outputRow = outputRow + 1 ' Passer à la ligne suivante dans la feuille Email
+        Next i
+    End If
+
+End Sub
